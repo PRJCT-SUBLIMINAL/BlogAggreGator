@@ -1,8 +1,9 @@
 import { db } from "./lib/db";
 import { XMLParser } from "fast-xml-parser";
 import {readConfig} from "./config"
-import { users, feeds } from "./lib/db/schema"
+import { users, feeds, feedFollows } from "./lib/db/schema"
 import {getUser, getUserById} from "./lib/db/queries/users"
+import { eq, and } from "drizzle-orm";
 import { registerHooks } from "node:module";
 
 type RSSFeed = {
@@ -69,13 +70,34 @@ export async function addFeed(cmdCommand: string, ...args: string[]) {
     const url = args[1];
 
     const feed = await createFeed(name, url, user.id)
-    
+    await createFeedFollow(user.id, feed.id);
     printFeed(feed, user);
 }
 
 export async function createFeed(name: string, url: string, userId: string) {
     const [result] = await db.insert(feeds).values({ name: name, url: url, userId: userId}).returning();
     return result;
+}
+
+export async function deleteFeedFollow(userId: string, url: string) {
+    const feed = await getFeedByURL(url);
+    await db.delete(feedFollows).where(and(eq(feedFollows.feedId, feed.id), eq(feedFollows.userId, userId)));
+}
+
+export async function createFeedFollow(userId: string, feedId: string) {
+    const [result] = await db.insert(feedFollows).values({ userId: userId, feedId: feedId }).returning();
+    const [result2] = await db.select().from(feedFollows).where(eq(feedFollows.id, result.id)).innerJoin(feeds, eq(feedFollows.feedId, feeds.id)).innerJoin(users, eq(feedFollows.userId, users.id));
+    return result2;
+}
+
+export async function getFeedByURL(url: string) {
+    const [feed] = await db.select().from(feeds).where(eq(feeds.url, url));
+    return feed;
+}
+
+export async function getFeedFollowsForUser(userId: string) {
+    const feedFollowsForUser = await db.select().from(feedFollows).where(eq(feedFollows.userId, userId)).innerJoin(feeds, eq(feedFollows.feedId, feeds.id));
+    return feedFollowsForUser;
 }
 
 function printFeed(feed: any, user: any) {
