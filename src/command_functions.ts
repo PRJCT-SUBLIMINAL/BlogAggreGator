@@ -1,6 +1,6 @@
 import {setUser} from "./config";
 import { createUser, getUser, resetUsers } from "./lib/db/queries/users";
-import { getFeedByURL, createFeedFollow, getFeedFollowsForUser, deleteFeedFollow } from "./feed";
+import { getFeedByURL, createFeedFollow, getFeedFollowsForUser, deleteFeedFollow, getPostsForUser } from "./feed";
 import { readConfig } from "./config";
 
 export async function handlerLogin(cmdName: string, ...args: string[]) {
@@ -70,4 +70,24 @@ export async function unfollow(cmdName: string, ...args: string[]) {
     const userId = user.id;
 
     await deleteFeedFollow(userId, args[0]);
+}
+
+export async function browse(cmdName: string, ...args: string[]) {
+    const config = readConfig();
+    const userName = config.currentUserName;
+    if (!userName) throw new Error("User not logged in!");
+
+    const user = await getUser(userName);
+    const userId = user.id;
+    let limit = 2;
+    if (args[0]) {
+        const parsed = parseInt(args[0], 10);
+        if (!isNaN(parsed)) {limit = parsed};
+    };
+
+    const posts = await getPostsForUser(userId, limit);
+
+    for (const post of posts) {
+        console.log(post);
+    }
 }

@@ -1,4 +1,4 @@
-import {handlerLogin, registerLogin, reset, follow, following, unfollow} from "./command_functions";
+import {handlerLogin, registerLogin, reset, follow, following, unfollow, browse} from "./command_functions";
 import {CommandHandler, CommandsRegistry, registerCommand, runCommand} from "./commands";
 import {getUsers} from "./lib/db/queries/users";
 import {agg, addFeed, printFeeds} from "./feed";
@@ -15,6 +15,7 @@ async function main() {
     registerCommand(registry, "follow", follow);
     registerCommand(registry, "following", following);
     registerCommand(registry, "unfollow", unfollow);
+    registerCommand(registry, "browse", browse);
 
     const args = process.argv.slice(2);
     if (args.length < 1) {

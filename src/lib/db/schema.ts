@@ -42,3 +42,5 @@ export const posts = pgTable("posts", {
   publishedAt: timestamp("published_at"),
   feedId: uuid("feed_id").references(() => feeds.id, { onDelete: "cascade" }).notNull()
 })
+
+export type NewPost = typeof posts.$inferInsert;

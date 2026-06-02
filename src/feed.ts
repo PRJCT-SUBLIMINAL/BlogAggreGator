@@ -1,9 +1,9 @@
 import { db } from "./lib/db";
 import { XMLParser } from "fast-xml-parser";
 import {readConfig} from "./config"
-import { users, feeds, feedFollows } from "./lib/db/schema"
+import { users, feeds, feedFollows, posts, NewPost } from "./lib/db/schema"
 import {getUser, getUserById} from "./lib/db/queries/users"
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { registerHooks } from "node:module";
 
 type RSSFeed = {
@@ -159,8 +159,18 @@ export async function scrapeFeeds() {
     if (!feed.channel.item) throw new Error("No feed item found!");
 
     for (const feedItem of feed.channel.item) {
-        console.log(feedItem.title);
+        await createPost({title: feedItem.title, url: feedItem.link, description: feedItem.description, feedId: result.id, publishedAt: new Date(feedItem.pubDate)});
     }
+}
+
+export async function createPost(post: NewPost) {
+    const [insertedPost] = await db.insert(posts).values(post).returning();
+    return insertedPost;
+}
+
+export async function getPostsForUser(userId: string, amount: number = 2) {
+    const results = await db.select().from(posts).innerJoin(feedFollows, eq(posts.feedId, feedFollows.feedId)).where(eq(feedFollows.userId, userId)).orderBy(desc(posts.publishedAt)).limit(amount);
+    return results;
 }
 
 function printFeed(feed: any, user: any) {
